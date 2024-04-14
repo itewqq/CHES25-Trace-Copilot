@@ -1,0 +1,9 @@
+binaries/
+__pycache__
+**.log
+**.png
+**.c
+**.asm
+**.S
+**.out
+**.o

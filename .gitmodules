@@ -1,0 +1,3 @@
+[submodule "pico/picosdk-python-wrappers"]
+	path = pico/picosdk-python-wrappers
+	url = https://github.com/picotech/picosdk-python-wrappers.git
