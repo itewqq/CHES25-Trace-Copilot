@@ -1,0 +1,1 @@
+# A framwork for integrating binary firmware and side-channel information of embedded cryptographic device
