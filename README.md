@@ -1,4 +1,4 @@
-# A framwork for integrating binary firmware and side-channel information of embedded cryptographic device
+# TraceCopilot: A framwork for integrating binary firmware and side-channel information of embedded cryptographic device
 
 ## Requirements
 
