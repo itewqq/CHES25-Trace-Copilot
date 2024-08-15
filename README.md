@@ -16,3 +16,5 @@
 - Execute the **firmware \#1** to get the target side-channel traces and segmentation signals.
 - Execute the **firmware \#2** and un-comment the `source ../src/get_pc_trace.py` line in `script/.gdbinit`, using the a ARM debugger to connect the profiling device with the Host PC and get the target addresses sequence.
 - Co-Analyse the side-channel trace and the address sequence in `pico/src/pico_trace_process.ipynb`. See the code and comments for details.
+
+>**Update for the revision**: we uploaded the original scripts of firmware handling and trace processing in the ECDSA and random-delayed AES experiments according to the manuscript revision. Please refer to `src/` and `pico/` for the details.
