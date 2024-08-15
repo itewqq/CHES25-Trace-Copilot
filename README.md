@@ -18,3 +18,4 @@
 - Co-Analyse the side-channel trace and the address sequence in `pico/src/pico_trace_process.ipynb`. See the code and comments for details.
 
 >**Update for the revision**: we uploaded the original scripts of firmware handling and trace processing in the ECDSA and random-delayed AES experiments according to the manuscript revision. Please refer to `src/` and `pico/` for the details.
+>To reproduce the results, you can download the collected trace files [here](https://drive.google.com/file/d/1Fp6cgyVPmdNk7brx-tQYgUrEvC862Z0r/view?usp=sharing). (We register an *anonymous* Google account to publish this link). 
