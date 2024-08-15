@@ -23,6 +23,7 @@ if __name__ == "__main__":
     parser.add_argument('--log-level', default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='set the logging level')
     parser.add_argument('--patch-only', nargs='?', default=argparse.SUPPRESS, help='only do the patch from existing cfg.json')
     parser.add_argument('--target-func', type=int_or_int_list, help='function address(hex int) to focus on')
+    parser.add_argument('--target-inst', type=int_or_int_list, help='explicit instruction address(hex int) to focus on')
 
     args = parser.parse_args()
 
@@ -40,42 +41,49 @@ if __name__ == "__main__":
     bin_path = os.path.abspath(args.bin_path)
     logging.info(bin_path)
 
-    # binary analysis
-    ## automatically extract all loops 
-    if 'patch_only' not in dir(args):
-        ## extract the cfg with ghidra script
-        ghidra_script = 'cortex-m_headless.py'
-        cmd = f'/opt/ghidra/support/analyzeHeadless . test_project -deleteProject -import {bin_path} -postScript {ghidra_script} -processor "ARM:LE:32:Cortex" -loader BinaryLoader -loader-baseAddr 0'
-        output_bytes = subprocess.check_output(cmd, shell=True)
-        # print(output_bytes.decode('utf-8'))
+    if args.target_inst is not None:
+        # explicitly input the target instruction list
+        loop_ends = list(set(args.target_inst))
+    else:
+        # binary analysis
+        ## automatically extract all loops 
+        if 'patch_only' not in dir(args):
+            ## extract the cfg with ghidra script
+            ghidra_script = 'cortex-m_headless.py'
+            cmd = f'/opt/ghidra/support/analyzeHeadless . test_project -deleteProject -import {bin_path} -postScript {ghidra_script} -processor "ARM:LE:32:Cortex" -loader BinaryLoader -loader-baseAddr 0'
+            output_bytes = subprocess.check_output(cmd, shell=True)
+            # print(output_bytes.decode('utf-8'))
 
-    ## find all loops automatically
-    with open(f"{bin_path}.cfg.json", "r") as f:
-        import json
-        function_list = json.loads(f.read())
+        ## find all loops automatically
+        with open(f"{bin_path}.cfg.json", "r") as f:
+            import json
+            function_list = json.loads(f.read())
 
-    funcs_loops = {}
-    loop_ends = []
+        funcs_loops = {}
+        loop_ends = []
 
-    # ## filter only the focusing functions
-    # if args.target_func is not None:
-    #     function_list = [func for func in function_list if func['address'] in args.target_func]
+        # ## filter only the focusing functions
+        # if args.target_func is not None:
+        #     function_list = [func for func in function_list if func['address'] in args.target_func]
 
-    # find loops for each function
-    for function in function_list:
-        # filter the abnormal functions
-        if len(function["blocks"]) == 0:
-            continue
-        funcs_loops[function["address"]] = find_function_loops(function["address"], function["blocks"])
-        for loop in funcs_loops[function["address"]]:
-            loop_ends.append(int(loop['end'], 16))
+        # find loops for each function
+        for function in function_list:
+            # filter the abnormal functions
+            if len(function["blocks"]) == 0:
+                continue
+            funcs_loops[function["address"]] = find_function_loops(function["address"], function["blocks"])
+            for loop in funcs_loops[function["address"]]:
+                loop_ends.append(int(loop['end'], 16))
 
-    logging.info("Total loops in the binary: {}".format(sum([len(v) for _,v in funcs_loops.items()])))
+        logging.info("Total loops in the binary: {}".format(sum([len(v) for _,v in funcs_loops.items()])))
 
-    if log_level == logging.DEBUG:
-        for func,loops in funcs_loops.items():
-            if len(loops) != 0:
-                logging.debug(f"In function {hex(func)}\n"+pprint.pformat(loops))
+        if log_level == logging.DEBUG:
+            for func,loops in funcs_loops.items():
+                if len(loops) != 0:
+                    logging.debug(f"In function {hex(func)}\n"+pprint.pformat(loops))
+
+    # sort the addresses for binary search
+    target_addrs = sorted(list(set(loop_ends)))
 
     # instrumentation
     ## binary configuration
@@ -83,9 +91,6 @@ if __name__ == "__main__":
     mcpu = "cortex-m4"
     compile_options = ""
     p = PIFER(bin_path=bin_path, img_base_va=img_base, arch=mcpu, compile_options=compile_options)
-
-    # sort the addresses for binary search
-    target_addrs = sorted(list(set(loop_ends)))
 
     if log_level ==  logging.DEBUG:
         # for debug
@@ -102,6 +107,7 @@ if __name__ == "__main__":
     
     # init the GPIO trigger
     reset_hook = '''
+    MOV   R1, #0x50000000
     MOV R0, #3
     STR   R0, [R1,#0x768]
     '''

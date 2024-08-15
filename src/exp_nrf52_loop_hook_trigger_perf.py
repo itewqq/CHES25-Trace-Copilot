@@ -94,7 +94,7 @@ if __name__ == "__main__":
     if log_level ==  logging.DEBUG:
         # for debug
         offset = 0
-        hook_num =  100 # len(target_addrs)
+        hook_num =  len(target_addrs)
         target_list = target_addrs[offset:offset+hook_num]
         # target_list = [0x4158] # aes round loop end, this is for debug only
     else:

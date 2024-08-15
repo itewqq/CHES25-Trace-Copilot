@@ -2,7 +2,7 @@ import os
 import shutil
 from typing import List
 
-from template_target import params_asm, template_string, template_startend_hooker, template_string_hwb_addr_tracer, template_string_M0, template_string_Exp_Switch_Only
+from template_target import params_asm, template_string, template_startend_hooker, template_string_hwb_addr_tracer, template_string_M0, template_string_Exp_Switch_Only, template_startend_hooker_bypass_bcond
 from utils import *
 from translator import *
 

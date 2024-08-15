@@ -56,13 +56,13 @@ def get_pico3203D_Trs(trs_path: str):
 
     return traces_data, crypto_data_mat
 
-def plot_spectrom(channel_data, fs, low_pass_freq = None):
+def plot_spectrom(channel_data, fs, low_pass_freq = None, nperseg=512, save_prefix=None, ass=None):
     # times = data[0, :]
     # channel_data = data[2, :]
     # Set up the parameters for the spectrogram
     # FIXME: 1e6 for us
     # fs = int(1/(times[1]-times[0])) * (1e6)  # Sampling frequency (Hz)
-    nperseg = 512  # Number of points in each segment
+    # nperseg = 512  # Number of points in each segment
     noverlap = nperseg // 2  # Overlap between segments
     window = signal.windows.hann(nperseg)  # Window function
 
@@ -80,12 +80,21 @@ def plot_spectrom(channel_data, fs, low_pass_freq = None):
         # Calculate the spectrogram using Scipy
         f, t, Sxx = signal.spectrogram(channel_data, fs=fs, window=window, nperseg=nperseg, noverlap=noverlap)
 
-    # Plot the spectrogram
-    plt.pcolormesh(t, f, 10*np.log10(Sxx))
+    if ass is None:
+        ass = 1/2
 
-    plt.ylabel('Frequency (Hz)')
-    plt.xlabel('Time (s)')
-    plt.title('Channel Spectrogram')
+    figsize = plt.figaspect(ass)
+    # fig, ax = plt.subplots(figsize=figsize)
+    fig, ax = plt.subplots()
+
+    # Plot the spectrogram
+    ax.pcolormesh(t, f, 10*np.log10(Sxx))
+
+    ax.set_ylabel('Frequency (Hz)')
+    ax.set_xlabel('Time (s)')
+    ax.set_title('Channel Spectrogram')
+    if save_prefix is not None:
+        plt.savefig(save_prefix+"-freqmap.png")
     plt.show()
 
 # some helper functions

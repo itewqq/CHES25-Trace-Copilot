@@ -138,7 +138,7 @@ class MyBreakpointFunc(gdb.Function):
 
     Usage: $_caller_var (NAME [, NUMBER-OF-FRAMES [, DEFAULT-VALUE]])
 
-    Arguments:
+    Arguments:  
 
       NAME: The name of the variable.
 
@@ -162,8 +162,22 @@ class MyBreakpointFunc(gdb.Function):
     def invoke(self):
         current_pc = gdb.selected_frame().read_register("pc")
         current_r0 = gdb.selected_frame().read_register("r0")
-        self.line_buffer.append(f"current_pc: {current_pc} current_r0: {hex(current_r0)}\n")
-        print(f"current_pc: {current_pc} current_r0: {hex(current_r0)}")
+        try:
+            inferior = gdb.selected_inferior()
+        except RuntimeError as e:
+            print("inferior error", e)
+            return True
+        if not inferior or not inferior.is_valid():
+            print("inferior invalid!")
+            return True
+        TRCENA = 0xE000EDFC
+        DWT_CTRL = 0xE0001000
+        DWT_CYCCNT = 0xE0001004
+        clock_cnt = int.from_bytes(inferior.read_memory(DWT_CYCCNT, 0x4), "little")
+        inferior.write_memory(DWT_CYCCNT, b"\x00"*4, 4) # reset counter 
+
+        self.line_buffer.append(f"current_pc: {current_pc} current_r0: {hex(current_r0)} current_cyccnt: {hex(clock_cnt)}\n")
+        print(f"current_pc: {current_pc} current_r0: {hex(current_r0)} current_cyccnt: {hex(clock_cnt)}")
         if current_r0 in self.end_addr:
             with open(self.log_file, "w") as f:
                 f.writelines(self.line_buffer)
@@ -177,3 +191,4 @@ MyBreakpointFunc(end_addr=loop_ends)
 
 gdb.execute(f"b *{hex(hwb)} if $my_bp_func()")
 gdb.execute("monitor reset halt")
+gdb.execute("c")

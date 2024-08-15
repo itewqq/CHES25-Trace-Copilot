@@ -184,6 +184,84 @@ DIGIT:
     POP {R4-R11, LR}
 '''
 
+template_startend_hooker_bypass_bcond = '''.syntax unified
+.global _start
+
+.text
+
+_start:
+
+// reset handler hooker
+new_reset_handler:
+	$reset_hook_code
+	LDR R0, =$reset_handler_ori //; real Reset_Handler+1
+	MOV IP, R0
+    BX IP
+    .LTORG
+
+new_hard_fault_handler:
+    $pre_code_asm
+    // get R1 -> stacked context
+    TST LR, #4
+	ITE EQ
+	MRSEQ R1, MSP
+	MRSNE R1, PSP
+    PUSH { LR } // save lr
+    // starting search the worker
+    shorten_bin_search:
+    // r0: target
+    // r4: addr[]
+    // r2: len
+    // return ip=location
+    PUSH { R4 }
+    LDR R0, [R1, #0x18]         // get PC
+    LDR R4, =sorted_addr_list // worker addresses
+    LDR R2, =#$num_workers
+    mov	ip, #0
+	add	r3, r2, ip // r3=(l=0+r)
+    asr	r3, r3, #1 // r3 /= 2, mid
+.bin_s_loop:
+    ldr	lr, [R4, r3, lsl #2] // r3 is mid, lr=addr[mid]
+	cmp	lr, r0 // compare arr[mid] with the target
+    // ITE GE
+	movge	r2, r3 // if greater r=mid
+	addlt	ip, r3, #1 // if less than, l=mid+1
+	add	r3, r2, ip // r3=l+r
+	cmp	r2, ip // if l<r
+	asr	r3, r3, #1 // r3= new mid
+	bgt	.bin_s_loop // continue
+    ldr R4, =sorted_worker_list
+    ldr	lr, [R4, ip, lsl #2] // now lr=arr[l]
+    POP { R4 }
+    bx lr  // jump to the worker
+    .LTORG
+
+sorted_addr_list:
+    // .word from_address
+    $sorted_addr_list
+
+sorted_worker_list:
+    // .word worker_address+1
+    $sorted_worker_list
+
+translated_workers:
+    // worker_0xaafc:
+    //      MOV IP, ...
+    //      
+    $translated_workers
+
+// make sure ip points to the incoming PC
+handler_exit:
+    LDR R0, [R1, #0x18] // original PC, used in post_code_asm, COMMENT this line for trigger
+    ADD R0, #2
+    STR R0, [R1, #0x18] // write PC+2 to context->PC, i.e., ignore the Bcond
+    // return
+    POP { LR } // restore exception LR
+    // trigger down
+    $post_code_asm
+    BX LR
+'''
+
 template_startend_hooker = '''.syntax unified
 .global _start
 
